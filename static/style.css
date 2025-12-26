@@ -1,0 +1,239 @@
+:root {
+    --color-primary: #2180a1;
+    --color-primary-hover: #1d7480;
+    --color-success: #32b8c6;
+    --color-error: #c01527;
+    --color-bg: #fcfcf9;
+    --color-surface: #ffffff;
+    --color-text: #134252;
+    --color-text-secondary: #626c7c;
+    --color-border: #d4d4d4;
+    --space-8: 8px;
+    --space-16: 16px;
+    --space-20: 20px;
+    --space-32: 32px;
+    --radius: 8px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: var(--space-20);
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+h1, h2 {
+    margin: 0 0 var(--space-20) 0;
+    color: var(--color-text);
+}
+
+h1 {
+    font-size: 28px;
+}
+
+h2 {
+    font-size: 20px;
+    margin: var(--space-32) 0 var(--space-16) 0;
+}
+
+.upload-zone {
+    border: 2px dashed var(--color-primary);
+    border-radius: var(--radius);
+    padding: var(--space-32);
+    text-align: center;
+    background: rgba(33, 128, 161, 0.03);
+    cursor: pointer;
+    transition: all 250ms ease;
+    margin-bottom: var(--space-20);
+}
+
+.upload-zone:hover {
+    border-color: var(--color-primary-hover);
+    background: rgba(33, 128, 161, 0.08);
+}
+
+.upload-zone.dragover {
+    border-color: var(--color-success);
+    background: rgba(50, 184, 198, 0.1);
+}
+
+.upload-icon {
+    font-size: 48px;
+    margin-bottom: var(--space-16);
+}
+
+.upload-text {
+    font-size: 16px;
+    margin-bottom: var(--space-8);
+    font-weight: 500;
+}
+
+.upload-hint {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}
+
+.file-input {
+    display: none;
+}
+
+.file-list {
+    margin-bottom: var(--space-20);
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-16);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    margin-bottom: var(--space-12);
+}
+
+.file-icon {
+    font-size: 24px;
+    min-width: 30px;
+}
+
+.file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: var(--space-4);
+}
+
+.file-size {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+.btn {
+    padding: var(--space-8) var(--space-16);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 250ms ease;
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-hover);
+}
+
+.btn-remove {
+    background: rgba(192, 21, 47, 0.1);
+    color: var(--color-error);
+    padding: var(--space-4) var(--space-8);
+    font-size: 12px;
+}
+
+.btn-remove:hover {
+    background: rgba(192, 21, 47, 0.2);
+}
+
+.actions {
+    display: flex;
+    gap: var(--space-12);
+    margin-bottom: var(--space-20);
+}
+
+.info-box, .error-box, .success-box {
+    padding: var(--space-16);
+    border-radius: var(--radius);
+    margin-bottom: var(--space-20);
+    font-size: 14px;
+}
+
+.info-box {
+    background: rgba(50, 184, 198, 0.08);
+    border: 1px solid rgba(50, 184, 198, 0.3);
+    color: var(--color-text);
+}
+
+.error-box {
+    background: rgba(192, 21, 47, 0.08);
+    border: 1px solid rgba(192, 21, 47, 0.3);
+    color: var(--color-error);
+}
+
+.success-box {
+    background: rgba(50, 184, 198, 0.08);
+    border: 1px solid rgba(50, 184, 198, 0.3);
+    color: var(--color-success);
+}
+
+.output-box {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--space-16);
+    margin-top: var(--space-16);
+    font-family: 'Courier New', monospace;
+}
+
+.output-header {
+    font-weight: 600;
+    margin-bottom: var(--space-12);
+    color: var(--color-text);
+}
+
+#commandOutput {
+    margin: 0;
+    padding: var(--space-12);
+    background: rgba(19, 52, 59, 0.03);
+    border-radius: 4px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+hr {
+    margin: var(--space-32) 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 600px) {
+    .upload-zone {
+        padding: var(--space-20);
+    }
+
+    .upload-icon {
+        font-size: 36px;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+    }
+}

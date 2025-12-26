@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Manager</title>
+    <link rel="stylesheet" href="static/style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+            <text y='.9em' font-size='90'>📤</text></svg>">
+</head>
+<body>
+    <div class="container">
+
+
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Перетащите файлы сюда</div>
+            <div class="upload-hint">или нажмите для выбора</div>
+            <input type="file" id="fileInput" class="file-input" multiple>
+        </div>
+
+        <div id="message"></div>
+        <div class="file-list" id="fileList"></div>
+
+        <div class="actions" id="actions" style="display: none;">
+            <button class="btn btn-primary" id="uploadBtn">Загрузить файлы</button>
+            <button class="btn btn-remove" id="clearBtn">Очистить</button>
+        </div>
+
+        <button class="btn btn-primary" id="listBtn">list files</button>
+        <button class="btn btn-primary" id="updateAPP">Update APP</button>
+        <button class="btn btn-primary" id="backupAPP">Backup APP</button>
+        <button class="btn btn-primary" id="restoreAPP">Restare APP</button>
+        <button class="btn btn-primary" id="backupBD">Backup BD</button>
+
+        <div id="commandMessage"></div>
+        <div class="output-box" id="outputBox" style="display: none;">
+            <div class="output-header">Результат:</div>
+            <pre id="commandOutput"></pre>
+        </div>
+    </div>
+
+    <script src="static/script.js"></script>
+</body>
+</html>
