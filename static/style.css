@@ -158,6 +158,7 @@ h2 {
 .actions {
     display: flex;
     gap: var(--space-12);
+    gap: 12px;  /* Небольшой отступ между кнопками */
     margin-bottom: var(--space-20);
 }
 
@@ -236,4 +237,61 @@ hr {
     .btn {
         width: 100%;
     }
+}
+
+.btn-delete {
+	padding: 8px 12px;
+	border: none;
+	border-radius: 8px;
+	background: rgba(192, 21, 47, 0.1);
+	color: #c01527;
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 250ms ease;
+	white-space: nowrap;
+}
+
+.btn-delete:hover {
+	background: rgba(192, 21, 47, 0.2);
+	transform: scale(1.05);
+}
+
+.file-name-size {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px;
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.file-item-info {
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;  /* Прижимает к левому краю */
+    align-items: center;
+}
+
+.file-meta {
+    color: #999;
+    margin-left: 8px;  /* Небольшой отступ от имени файла */
+}
+
+#commandMessage {
+    margin-top: 20px;  /* Больший отступ сверху */
+}
+
+#clearBtn {
+    min-width: 120px;  /* Увеличивает длину кнопки */
+    /* или используйте width: 140px; для фиксированной ширины */
 }

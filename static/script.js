@@ -13,288 +13,247 @@ const updateAPP = document.getElementById('updateAPP');
 const backupAPP = document.getElementById('backupAPP');
 const restoreAPP = document.getElementById('restoreAPP');
 const backupBD = document.getElementById('backupBD');
+listBtn.addEventListener('click', loadFileList);
+window.addEventListener('load', function() {
+    loadFileList();
+});
 
 let selectedFiles = [];
-
-// Upload zone handlers
-uploadZone.addEventListener('click', () => fileInput.click());
-
-uploadZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadZone.classList.add('dragover');
-});
-
-uploadZone.addEventListener('dragleave', () => {
-    uploadZone.classList.remove('dragover');
-});
-
-uploadZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadZone.classList.remove('dragover');
-    handleFiles(e.dataTransfer.files);
-});
-
-fileInput.addEventListener('change', (e) => {
-    handleFiles(e.target.files);
-});
 
 function handleFiles(files) {
     selectedFiles = Array.from(files);
     renderFileList();
+    loadFileList();  // ← Автоматический вызов при загрузке файлов
     messageBox.innerHTML = '';
+}
+
+// Функция для экранирования HTML
+function escapeHtml(text) {
+	const map = {
+		'&': '&amp;',
+		'<': '&lt;',
+		'>': '&gt;',
+		'"': '&quot;',
+		"'": '&#039;'
+	};
+	return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// Функция удаления файла
+async function deleteFile(filename) {
+	if (!confirm(`Вы уверены, что хотите удалить файл "${filename}"?`)) {
+		return;
+	}
+
+	try {
+		const response = await fetch('/api/delete', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+			},
+			body: 'filename=' + encodeURIComponent(filename)
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			messageBox.innerHTML = `<div class="error-box">❌ Ошибка: ${escapeHtml(data.error)}</div>`;
+			return;
+		}
+
+		messageBox.innerHTML = `<div class="success-box">✓ Файл "${escapeHtml(filename)}" успешно удален</div>`;
+		listFiles();
+	} catch (error) {
+		messageBox.innerHTML = `<div class="error-box">❌ Ошибка: ${escapeHtml(error.message)}</div>`;
+	}
+}
+
+// Функция получения списка файлов
+async function listFiles() {
+	try {
+		const response = await fetch('/api/list');
+		const data = await response.json();
+
+		if (data.error) {
+			commandMessage.textContent = '❌ ' + data.error;
+			outputBox.style.display = 'none';
+			return;
+		}
+		
+		commandMessage.textContent = '📁 Список файлов в uploads:';
+		outputBox.style.display = 'block';
+		
+		const lines = data.output.trim().split('\n');
+		let html = '';
+		
+		lines.forEach(line => {
+			line = line.trim();
+			if (!line) return;
+			
+			const parts = line.split(/\s+/);
+			if (parts.length >= 4) {
+				const size = parts[0];
+				const month = parts[1];
+				const day = parts[2];
+				const time = parts[3];
+				const filename = parts.slice(4).join(' ');
+				
+				if (filename) {
+					html += `<div class="file-item-row">
+						<div class="file-item-info">
+							<strong>${escapeHtml(filename)}</strong> • <small class="file-meta">${size} • ${month} ${day} ${time}</small>
+						</div>
+						<button class="btn-delete" onclick="deleteFile('${escapeHtml(filename).replace(/'/g, "\\'")}')">Удалить</button>
+					</div>`;
+				}
+			}
+		});
+		
+		commandOutput.innerHTML = html || '<p style="color: #999;">Нет файлов</p>';
+	} catch (error) {
+		commandMessage.textContent = '❌ Ошибка: ' + error.message;
+		outputBox.style.display = 'block';
+	}
+}
+
+// Upload zone handlers
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', (e) => {
+	e.preventDefault();
+	uploadZone.classList.add('dragover');
+});
+uploadZone.addEventListener('dragleave', () => {
+	uploadZone.classList.remove('dragover');
+});
+uploadZone.addEventListener('drop', (e) => {
+	e.preventDefault();
+	uploadZone.classList.remove('dragover');
+	handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', (e) => {
+	handleFiles(e.target.files);
+});
+
+function handleFiles(files) {
+	selectedFiles = Array.from(files);
+	renderFileList();
+	messageBox.innerHTML = '';
 }
 
 function renderFileList() {
-    fileList.innerHTML = '';
-    
-    if (selectedFiles.length === 0) {
-        actions.style.display = 'none';
-        return;
-    }
-
-    actions.style.display = 'flex';
-
-    selectedFiles.forEach((file, index) => {
-        const fileItem = document.createElement('div');
-        fileItem.className = 'file-item';
-        fileItem.innerHTML = `
-            <div class="file-icon">${getFileIcon(file.name)}</div>
-            <div class="file-info">
-                <div class="file-name" title="${file.name}">${file.name}</div>
-                <div class="file-size">${formatFileSize(file.size)}</div>
-            </div>
-        `;
-
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'btn btn-remove';
-        removeBtn.textContent = '✕';
-        removeBtn.addEventListener('click', () => {
-            selectedFiles.splice(index, 1);
-            renderFileList();
-        });
-        fileItem.appendChild(removeBtn);
-
-        fileList.appendChild(fileItem);
-    });
+	fileList.innerHTML = '';
+	if (selectedFiles.length === 0) {
+		actions.style.display = 'none';
+		return;
+	}
+	actions.style.display = 'flex';
+	selectedFiles.forEach((file, index) => {
+		const fileItem = document.createElement('div');
+		fileItem.className = 'file-item';
+		fileItem.innerHTML = `
+			<span class="file-icon">📄</span>
+			<div class="file-info">
+				<div class="file-name">${escapeHtml(file.name)}</div>
+				<div class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+			</div>
+			<button class="btn-remove" onclick="removeFile(${index})">✕</button>
+		`;
+		fileList.appendChild(fileItem);
+	});
 }
 
-function getFileIcon(filename) {
-    const ext = filename.split('.').pop().toLowerCase();
-    const iconMap = {
-        'zip': '🗜️', 'rar': '🗜️', '7z': '🗜️', 'tar': '🗜️', 'gz': '🗜️',
-        'pdf': '📄', 'doc': '📝', 'docx': '📝', 'txt': '📄',
-        'xls': '📊', 'xlsx': '📊', 'csv': '📊',
-        'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
-        'mp4': '🎥', 'avi': '🎥', 'mov': '🎥',
-        'mp3': '🎵', 'wav': '🎵', 'flac': '🎵'
-    };
-    return iconMap[ext] || '📎';
+function removeFile(index) {
+	selectedFiles.splice(index, 1);
+	renderFileList();
 }
 
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-}
-
-uploadBtn.addEventListener('click', async () => {
-    if (selectedFiles.length === 0) {
-        showMessage('Выберите файлы', 'error', messageBox);
-        return;
-    }
-
-    uploadBtn.disabled = true;
-    uploadBtn.textContent = '⏳ Загрузка...';
-
-    const formData = new FormData();
-    selectedFiles.forEach((file) => {
-        formData.append('files', file);
-    });
-
-    try {
-        const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            const fileList = selectedFiles.map(f => `• ${f.name}`).join('<br>');
-            showMessage(`✓ Загружены файлы:<br>${fileList}`, 'success', messageBox);
-            selectedFiles = [];
-            renderFileList();
-        } else {
-            const error = await response.json();
-            showMessage(`✗ Ошибка: ${error.error}`, 'error', messageBox);
-        }
-    } catch (error) {
-        showMessage(`✗ Ошибка: ${error.message}`, 'error', messageBox);
-    }
-
-    uploadBtn.disabled = false;
-    uploadBtn.textContent = 'Загрузить файлы';
-});
-
+uploadBtn.addEventListener('click', uploadFiles);
 clearBtn.addEventListener('click', () => {
-    selectedFiles = [];
-    renderFileList();
-    messageBox.innerHTML = '';
-    fileInput.value = '';
+	selectedFiles = [];
+	renderFileList();
+	messageBox.innerHTML = '';
 });
+listBtn.addEventListener('click', listFiles);
+updateAPP.addEventListener('click', () => executeCommand('/api/update', 'Update'));
+backupAPP.addEventListener('click', () => executeCommand('/api/backupAPP', 'Backup APP'));
+restoreAPP.addEventListener('click', () => executeCommand('/api/restoreAPP', 'Restore APP'));
+backupBD.addEventListener('click', () => executeCommand('/api/backupBD', 'Backup BD'));
 
-// list
-listBtn.addEventListener('click', async () => {
-    listBtn.disabled = true;
-    listBtn.textContent = '⏳ Выполнение...';
-    commandMessage.innerHTML = '';
+async function uploadFiles() {
+	if (selectedFiles.length === 0) {
+		messageBox.innerHTML = '<div class="error-box">❌ Выберите файлы для загрузки</div>';
+		return;
+	}
 
-    try {
-        const response = await fetch('/api/list', {
-            method: 'GET'
-        });
+	const formData = new FormData();
+	selectedFiles.forEach(file => {
+		formData.append('files', file);
+	});
 
-        const result = await response.json();
+	try {
+		uploadBtn.disabled = true;
+		const response = await fetch('/api/upload', {
+			method: 'POST',
+			body: formData
+		});
 
-        if (response.ok) {
-            commandOutput.textContent = result.output;
-            outputBox.style.display = 'block';
-            showMessage('✓ Успешно', 'success', commandMessage);
-        } else {
-            showMessage(`✗ Ошибка: ${result.error}`, 'error', commandMessage);
-            commandOutput.textContent = result.output || 'Ошибка';
-            outputBox.style.display = 'block';
-        }
-    } catch (error) {
-        showMessage(`✗ Ошибка сети: ${error.message}`, 'error', commandMessage);
-    }
+		const data = await response.json();
 
-    listBtn.disabled = false;
-    listBtn.textContent = 'Список файлов';
-});
+		if (data.error) {
+			messageBox.innerHTML = `<div class="error-box">❌ Ошибка: ${escapeHtml(data.error)}</div>`;
+			return;
+		}
 
-function showMessage(text, type, element) {
-    const boxClass = type === 'success' ? 'success-box' : type === 'error' ? 'error-box' : 'info-box';
-    element.innerHTML = `<div class="${boxClass}">${text}</div>`;
+		messageBox.innerHTML = `<div class="success-box">✓ Загружено файлов: ${data.uploaded}</div>`;
+		selectedFiles = [];
+		renderFileList();
+		messageBox.innerHTML += '<div class="info-box">ℹ️ Файлы загружены успешно!</div>';
+	} catch (error) {
+		messageBox.innerHTML = `<div class="error-box">❌ Ошибка загрузки: ${escapeHtml(error.message)}</div>`;
+	} finally {
+		uploadBtn.disabled = false;
+	}
 }
 
-// updateAPP
-updateAPP.addEventListener('click', async () => {
-    updateAPP.disabled = true;
-    updateAPP.textContent = '⏳ Выполнение...';
-    commandMessage.innerHTML = '';
+async function executeCommand(endpoint, commandName) {
+	try {
+		const response = await fetch(endpoint);
+		const data = await response.json();
 
+		if (data.error) {
+			commandMessage.textContent = '❌ ' + data.error;
+			outputBox.style.display = 'none';
+			return;
+		}
+
+		commandMessage.textContent = `✓ ${commandName} выполнена успешно`;
+		commandOutput.textContent = data.output;
+		outputBox.style.display = 'block';
+	} catch (error) {
+		commandMessage.textContent = '❌ Ошибка: ' + error.message;
+		outputBox.style.display = 'block';
+	}
+}
+
+// Функция для автоматического показа списка файлов
+async function loadFileList() {
     try {
-        const response = await fetch('/api/update', {
-            method: 'GET'
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            commandOutput.textContent = result.output;
+        const response = await fetch('/api/list');
+        const data = await response.json();
+        
+        if (response.ok && data.files && data.files.length > 0) {
+            // Показать список файлов (ваш существующий код)
+            showFileList(data.files);
             outputBox.style.display = 'block';
-            showMessage('✓ Успешно', 'success', commandMessage);
         } else {
-            showMessage(`✗ Ошибка: ${result.error}`, 'error', commandMessage);
-            commandOutput.textContent = result.output || 'Ошибка';
-            outputBox.style.display = 'block';
+            commandOutput.textContent = 'Нет файлов';
         }
     } catch (error) {
-        showMessage(`✗ Ошибка сети: ${error.message}`, 'error', commandMessage);
+        commandOutput.textContent = '❌ Ошибка загрузки списка: ' + error.message;
+        outputBox.style.display = 'block';
     }
+}
 
-    updateAPP.disabled = false;
-    updateAPP.textContent = 'Update APP';
-});
-
-// backupAPP
-backupAPP.addEventListener('click', async () => {
-    backupAPP.disabled = true;
-    backupAPP.textContent = '⏳ Выполнение...';
-    commandMessage.innerHTML = '';
-
-    try {
-        const response = await fetch('/api/backupAPP', {
-            method: 'GET'
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            commandOutput.textContent = result.output;
-            outputBox.style.display = 'block';
-            showMessage('✓ Успешно', 'success', commandMessage);
-        } else {
-            showMessage(`✗ Ошибка: ${result.error}`, 'error', commandMessage);
-            commandOutput.textContent = result.output || 'Ошибка';
-            outputBox.style.display = 'block';
-        }
-    } catch (error) {
-        showMessage(`✗ Ошибка сети: ${error.message}`, 'error', commandMessage);
-    }
-
-    backupAPP.disabled = false;
-    backupAPP.textContent = 'Backup APP';
-});
-
-// restoreAPP
-restoreAPP.addEventListener('click', async () => {
-    restoreAPP.disabled = true;
-    restoreAPP.textContent = '⏳ Выполнение...';
-    commandMessage.innerHTML = '';
-
-    try {
-        const response = await fetch('/api/restoreAPP', {
-            method: 'GET'
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            commandOutput.textContent = result.output;
-            outputBox.style.display = 'block';
-            showMessage('✓ Успешно', 'success', commandMessage);
-        } else {
-            showMessage(`✗ Ошибка: ${result.error}`, 'error', commandMessage);
-            commandOutput.textContent = result.output || 'Ошибка';
-            outputBox.style.display = 'block';
-        }
-    } catch (error) {
-        showMessage(`✗ Ошибка сети: ${error.message}`, 'error', commandMessage);
-    }
-
-    restoreAPP.disabled = false;
-    restoreAPP.textContent = 'Restore APP';
-});
-
-// backupBD
-backupBD.addEventListener('click', async () => {
-    backupBD.disabled = true;
-    backupBD.textContent = '⏳ Выполнение...';
-    commandMessage.innerHTML = '';
-
-    try {
-        const response = await fetch('/api/backupBD', {
-            method: 'GET'
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            commandOutput.textContent = result.output;
-            outputBox.style.display = 'block';
-            showMessage('✓ Успешно', 'success', commandMessage);
-        } else {
-            showMessage(`✗ Ошибка: ${result.error}`, 'error', commandMessage);
-            commandOutput.textContent = result.output || 'Ошибка';
-            outputBox.style.display = 'block';
-        }
-    } catch (error) {
-        showMessage(`✗ Ошибка сети: ${error.message}`, 'error', commandMessage);
-    }
-
-    backupBD.disabled = false;
-    backupBD.textContent = 'Backup BD';
+document.addEventListener('DOMContentLoaded', function() {
+    loadFileList();  // ← Автоматический вызов при обновлении страницы
 });

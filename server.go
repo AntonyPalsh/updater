@@ -54,6 +54,7 @@ func main() {
 	http.HandleFunc("/api/backupAPP", backupAPPHandler)
 	http.HandleFunc("/api/restoreAPP", restoreAPPHandler)
 	http.HandleFunc("/api/backupBD", backupBDHandler)
+	http.HandleFunc("/api/delete", deleteHandler)
 
 	log.Printf("🚀 Сервер запущен на http://localhost:%s", cfg.Port)
 	log.Printf("📁 Директория загрузок: %s", cfg.UploadDir)
@@ -136,6 +137,44 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Uploaded: uploaded})
+}
+
+func deleteHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(Response{Error: "Метод не поддерживается"})
+		return
+	}
+
+	filename := r.FormValue("filename")
+	if filename == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(Response{Error: "Имя файла не указано"})
+		return
+	}
+
+	filename = filepath.Base(filename)
+	filePath := filepath.Join(cfg.UploadDir, filename)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(Response{Error: "Файл не найден"})
+		return
+	}
+
+	if err := os.Remove(filePath); err != nil {
+		log.Printf("Ошибка удаления файла %s: %v", filename, err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(Response{Error: fmt.Sprintf("Ошибка удаления файла: %v", err)})
+		return
+	}
+
+	log.Printf("✓ Файл удален: %s", filename)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(Response{Success: 1})
 }
 
 // Обработка команды ls -la
