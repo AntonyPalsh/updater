@@ -13,19 +13,8 @@ const updateAPP = document.getElementById('updateAPP');
 const backupAPP = document.getElementById('backupAPP');
 const restoreAPP = document.getElementById('restoreAPP');
 const backupBD = document.getElementById('backupBD');
-listBtn.addEventListener('click', loadFileList);
-window.addEventListener('load', function() {
-    loadFileList();
-});
 
 let selectedFiles = [];
-
-function handleFiles(files) {
-    selectedFiles = Array.from(files);
-    renderFileList();
-    loadFileList();  // ← Автоматический вызов при загрузке файлов
-    messageBox.innerHTML = '';
-}
 
 // Функция для экранирования HTML
 function escapeHtml(text) {
@@ -80,7 +69,7 @@ async function listFiles() {
 			return;
 		}
 		
-		commandMessage.textContent = '📁 Список файлов в uploads:';
+		commandMessage.textContent = '📁 Список файлов в uloads:';
 		outputBox.style.display = 'block';
 		
 		const lines = data.output.trim().split('\n');
@@ -234,26 +223,3 @@ async function executeCommand(endpoint, commandName) {
 		outputBox.style.display = 'block';
 	}
 }
-
-// Функция для автоматического показа списка файлов
-async function loadFileList() {
-    try {
-        const response = await fetch('/api/list');
-        const data = await response.json();
-        
-        if (response.ok && data.files && data.files.length > 0) {
-            // Показать список файлов (ваш существующий код)
-            showFileList(data.files);
-            outputBox.style.display = 'block';
-        } else {
-            commandOutput.textContent = 'Нет файлов';
-        }
-    } catch (error) {
-        commandOutput.textContent = '❌ Ошибка загрузки списка: ' + error.message;
-        outputBox.style.display = 'block';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    loadFileList();  // ← Автоматический вызов при обновлении страницы
-});

@@ -9,13 +9,19 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
 // Config структура конфигурации
 type Config struct {
-	Port      string
-	UploadDir string
+	Port       string
+	UploadDir  string
+	Update     string
+	BackupAPP  string
+	RestoreAPP string
+	BackupBD   string
+	LimitMB    int64
 }
 
 // Response структура ответа
@@ -28,15 +34,33 @@ type Response struct {
 
 var cfg Config
 
+// Получаем значение по умолчанию, если не заданны переменные окружения
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func init() {
-	cfg = Config{
-		// Port:      os.Getenv("UPT_PORT"),
-		// UploadDir: os.Getenv("UPT_URL_PREFIX"),
-		Port:      ":8080",
-		UploadDir: "./uploads",
+
+	limitMB, err := strconv.ParseInt(getEnv("UPT_LIMIT_DOWNLOAD_MB", "500"), 10, 64)
+	if err != nil {
+		log.Fatalf("Не корректный формат UPT_LIMIT_DOWNLOAD_MB: %v", err)
+		return
 	}
 
-	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
+	cfg = Config{
+		LimitMB:    limitMB,
+		Port:       getEnv("UPT_PORT", ":8080"),
+		UploadDir:  getEnv("UPT_URL_PREFIX", "./uploads"),
+		Update:     getEnv("UPT_SC_UPDATE", "lscpu"),
+		BackupAPP:  getEnv("UPT_SC_BACKUP_APP", "who"),
+		RestoreAPP: getEnv("UPT_SC_RESTORE_APP", "vmstat"),
+		BackupBD:   getEnv("UPT_SC_BACKUP_BD", "lsblk"),
+	}
+
+	if err := os.MkdirAll(cfg.UploadDir, 0750); err != nil {
 		log.Fatalf("Ошибка создания директории: %v", err)
 	}
 }
@@ -92,7 +116,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ограничиваем размер: 500 MB
-	r.ParseMultipartForm(500 << 20)
+	r.ParseMultipartForm(cfg.LimitMB << 20)
 
 	files := r.MultipartForm.File["files"]
 	if len(files) == 0 {
@@ -215,7 +239,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cmd *exec.Cmd
-	cmd = exec.Command("lscpu")
+	cmd = exec.Command(cfg.Update)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -243,7 +267,7 @@ func backupAPPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cmd *exec.Cmd
-	cmd = exec.Command("lscpu")
+	cmd = exec.Command(cfg.BackupAPP)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -271,7 +295,7 @@ func restoreAPPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cmd *exec.Cmd
-	cmd = exec.Command("lscpu")
+	cmd = exec.Command(cfg.RestoreAPP)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -299,7 +323,7 @@ func backupBDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cmd *exec.Cmd
-	cmd = exec.Command("lscpu")
+	cmd = exec.Command(cfg.BackupBD)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
