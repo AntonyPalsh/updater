@@ -44,6 +44,7 @@ func getEnv(key, defaultValue string) string {
 
 func init() {
 
+	// Проверяем корректность ввода значения limitMB
 	limitMB, err := strconv.ParseInt(getEnv("UPT_LIMIT_DOWNLOAD_MB", "500"), 10, 64)
 	if err != nil {
 		log.Fatalf("Не корректный формат UPT_LIMIT_DOWNLOAD_MB: %v", err)
@@ -89,7 +90,7 @@ func main() {
 	}
 }
 
-// Служит главную страницу
+// Загрузка web страницы
 func serveIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
