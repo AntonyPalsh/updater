@@ -1,3 +1,14 @@
+const APP_CONFIG = {
+    disabledButtons: {
+        'updateAPP': true,   // true - кнопка заблокирована
+        'backupAPP': false,  // false - кнопка активна
+        'restoreAPP': true,
+        'backupBD': false
+    }
+};
+
+const upt_url_api_prefix = "";
+
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
 const fileList = document.getElementById('fileList');
@@ -14,50 +25,45 @@ const backupAPP = document.getElementById('backupAPP');
 const restoreAPP = document.getElementById('restoreAPP');
 const backupBD = document.getElementById('backupBD');
 
-// Задать переменную префикса пути к API
-const upt_url_api_prefix = "";
-
 let selectedFiles = [];
 
-// Функция для экранирования HTML
 function escapeHtml(text) {
-	const map = {
-		'&': '&amp;',
-		'<': '&lt;',
-		'>': '&gt;',
-		'"': '&quot;',
-		"'": '&#039;'
-	};
-	return text.replace(/[&<>"']/g, m => map[m]);
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return text.replace(/[&<>"']/g, m => map[m]);
 }
 
-// Функция удаления файла
+// Функция инициализации блокировок
+function applyButtonRestrictions() {
+    Object.entries(APP_CONFIG.disabledButtons).forEach(([id, isDisabled]) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.disabled = isDisabled;
+            if (isDisabled) {
+                btn.title = "Эта функция временно отключена";
+            }
+        }
+    });
+}
+
+applyButtonRestrictions();
+
 async function deleteFile(filename) {
-	if (!confirm(`Вы уверены, что хотите удалить файл "${filename}"?`)) {
-		return;
-	}
-
-	try {
-		const response = await fetch(`${upt_url_api_prefix}/api/delete`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-			},
-			body: 'filename=' + encodeURIComponent(filename)
-		});
-
-		const data = await response.json();
-
-		if (!response.ok) {
-			messageBox.innerHTML = `<div class="error-box">❌ Ошибка: ${escapeHtml(data.error)}</div>`;
-			return;
-		}
-
-		messageBox.innerHTML = `<div class="success-box">✓ Файл "${escapeHtml(filename)}" успешно удален</div>`;
-		listFiles();
-	} catch (error) {
-		messageBox.innerHTML = `<div class="error-box">❌ Ошибка: ${escapeHtml(error.message)}</div>`;
-	}
+    if (!confirm(`Вы уверены, что хотите удалить файл "${filename}"?`)) return;
+    try {
+        const response = await fetch(`${upt_url_api_prefix}/api/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'filename=' + encodeURIComponent(filename)
+        });
+        if (!response.ok) {
+            const data = await response.json();
+            messageBox.innerHTML = `<div class="error-box">${escapeHtml(data.error)}</div>`;
+            return;
+        }
+        listFiles();
+    } catch (error) {
+        messageBox.innerHTML = `<div class="error-box">${escapeHtml(error.message)}</div>`;
+    }
 }
 
 // Функция получения списка файлов
@@ -108,121 +114,113 @@ async function listFiles() {
 	}
 }
 
-// Upload zone handlers
+
 uploadZone.addEventListener('click', () => fileInput.click());
-uploadZone.addEventListener('dragover', (e) => {
-	e.preventDefault();
-	uploadZone.classList.add('dragover');
-});
-uploadZone.addEventListener('dragleave', () => {
-	uploadZone.classList.remove('dragover');
-});
+uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
 uploadZone.addEventListener('drop', (e) => {
-	e.preventDefault();
-	uploadZone.classList.remove('dragover');
-	handleFiles(e.dataTransfer.files);
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
 });
-fileInput.addEventListener('change', (e) => {
-	handleFiles(e.target.files);
-});
+fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
 function handleFiles(files) {
-	selectedFiles = Array.from(files);
-	renderFileList();
-	messageBox.innerHTML = '';
+    selectedFiles = Array.from(files);
+    renderFileList();
+    messageBox.innerHTML = '';
 }
 
 function renderFileList() {
-	fileList.innerHTML = '';
-	if (selectedFiles.length === 0) {
-		actions.style.display = 'none';
-		return;
-	}
-	actions.style.display = 'flex';
-	selectedFiles.forEach((file, index) => {
-		const fileItem = document.createElement('div');
-		fileItem.className = 'file-item';
-		fileItem.innerHTML = `
-			<span class="file-icon">📄</span>
-			<div class="file-info">
-				<div class="file-name">${escapeHtml(file.name)}</div>
-				<div class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
-			</div>
-			<button class="btn-remove" onclick="removeFile(${index})">✕</button>
-		`;
-		fileList.appendChild(fileItem);
-	});
+    fileList.innerHTML = '';
+    if (selectedFiles.length === 0) {
+        actions.style.display = 'none';
+        return;
+    }
+    actions.style.display = 'flex';
+    selectedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.innerHTML = `
+            <div class="file-info">
+                <span>${escapeHtml(file.name)}</span>
+                <small>${(file.size / (1024 * 1024)).toFixed(2)} MB</small>
+            </div>
+            <button onclick="removeFile(${index})">✕</button>`;
+        fileList.appendChild(fileItem);
+    });
 }
 
 function removeFile(index) {
-	selectedFiles.splice(index, 1);
-	renderFileList();
+    selectedFiles.splice(index, 1);
+    renderFileList();
+}
+
+async function uploadFiles() {
+    if (selectedFiles.length === 0) return;
+
+    uploadBtn.disabled = true;
+    const originalText = uploadBtn.innerText;
+    uploadBtn.innerText = 'Загрузка...';
+    
+    // Используем классы из CSS
+    messageBox.innerHTML = `
+        <div class="progress-wrapper">
+            <div id="progressBar">0%</div>
+        </div>`;
+    const progressBar = document.getElementById('progressBar');
+
+    const formData = new FormData();
+    selectedFiles.forEach(file => formData.append('files', file));
+
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = percent + '%';
+            progressBar.innerText = percent + '%';
+        }
+    });
+
+    xhr.onload = function() {
+        uploadBtn.disabled = false;
+        uploadBtn.innerText = originalText;
+        if (xhr.status >= 200 && xhr.status < 300) {
+            messageBox.innerHTML = '<div class="success-box">Готово</div>';
+            selectedFiles = [];
+            renderFileList();
+        } else {
+            messageBox.innerHTML = '<div class="error-box">Ошибка сервера</div>';
+        }
+    };
+
+    xhr.onerror = () => {
+        uploadBtn.disabled = false;
+        uploadBtn.innerText = originalText;
+        messageBox.innerHTML = '<div class="error-box">Ошибка сети</div>';
+    };
+
+    xhr.open('POST', `${upt_url_api_prefix}/api/upload`);
+    xhr.send(formData);
 }
 
 uploadBtn.addEventListener('click', uploadFiles);
-clearBtn.addEventListener('click', () => {
-	selectedFiles = [];
-	renderFileList();
-	messageBox.innerHTML = '';
-});
+clearBtn.addEventListener('click', () => { selectedFiles = []; renderFileList(); messageBox.innerHTML = ''; });
 listBtn.addEventListener('click', listFiles);
-updateAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/update`, 'Update'));
-backupAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupAPP`, 'Backup APP'));
-restoreAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/restoreAPP`, 'Restore APP'));
-backupBD.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupBD`, 'Backup BD'));
 
-async function uploadFiles() {
-	if (selectedFiles.length === 0) {
-		messageBox.innerHTML = '<div class="error-box">❌ Выберите файлы для загрузки</div>';
-		return;
-	}
-
-	const formData = new FormData();
-	selectedFiles.forEach(file => {
-		formData.append('files', file);
-	});
-
-	try {
-		uploadBtn.disabled = true;
-		const response = await fetch(`${upt_url_api_prefix}/api/upload`, {
-			method: 'POST',
-			body: formData
-		});
-
-		const data = await response.json();
-
-		if (data.error) {
-			messageBox.innerHTML = `<div class="error-box">❌ Ошибка: ${escapeHtml(data.error)}</div>`;
-			return;
-		}
-
-		messageBox.innerHTML = `<div class="success-box">✓ Загружено файлов: ${data.uploaded}</div>`;
-		selectedFiles = [];
-		renderFileList();
-		messageBox.innerHTML += '<div class="info-box">ℹ️ Файлы загружены успешно!</div>';
-	} catch (error) {
-		messageBox.innerHTML = `<div class="error-box">❌ Ошибка загрузки: ${escapeHtml(error.message)}</div>`;
-	} finally {
-		uploadBtn.disabled = false;
-	}
+async function executeCommand(endpoint, name) {
+    try {
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        commandMessage.textContent = name + ':';
+        commandOutput.textContent = data.output || data.error;
+        outputBox.style.display = 'block';
+    } catch (e) {
+        commandMessage.textContent = 'Ошибка';
+    }
 }
 
-async function executeCommand(endpoint, commandName) {
-	try {
-		const response = await fetch(endpoint);
-		const data = await response.json();
-
-		if (data.error) {
-			commandMessage.textContent = '❌ ' + data.error;
-			outputBox.style.display = 'none';
-			return;
-		}
-
-		commandMessage.textContent = `✓ ${commandName} выполнена успешно`;
-		commandOutput.textContent = data.output;
-		outputBox.style.display = 'block';
-	} catch (error) {
-		commandMessage.textContent = '❌ Ошибка: ' + error.message;
-		outputBox.style.display = 'block';
-	}
-}
+updateAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/update`, 'Обновление'));
+backupAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupAPP`, 'Бэкап APP'));
+restoreAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/restoreAPP`, 'Восстановление'));
+backupBD.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupBD`, 'Бэкап БД'));
