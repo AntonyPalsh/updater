@@ -76,8 +76,8 @@ func registerRoute(pattern string, handler http.HandlerFunc) {
 
 func main() {
 	// Статические файлы
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	fs := http.FileServer(http.Dir("front"))
+	http.Handle("/front/", http.StripPrefix("/front/", fs))
 
 	// API endpoints
 	http.HandleFunc("/", serveIndex)
@@ -106,7 +106,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := os.Open("index.html")
+	file, err := os.Open("front/index.html")
 	if err != nil {
 		http.Error(w, "❌ Файл не найден", http.StatusNotFound)
 		return
