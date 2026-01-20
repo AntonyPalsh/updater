@@ -18,13 +18,14 @@ Go File & System Manager
 Переменная	            Описание	                            Значение по умолчанию
 
 UPT_PORT	            Порт, на котором запустится сервер	    :8080
-UPT_URL_API_PREFIX	                                            /update
+UPT_URL_API_PREFIX	                                            ""
 UPT_PATH_PREFIX         Директория для загрузки файлов          ./uploads
 UPT_LIMIT_DOWNLOAD_MB	Максимальный размер загрузки (МБ)	    500
 UPT_SC_UPDATE	        Команда для обновления системы	        lscpu
 UPT_SC_BACKUP_APP	    Команда бэкапа приложения	            who
 UPT_SC_RESTORE_APP	    Команда восстановления приложения	    vmstat
 UPT_SC_BACKUP_BD	    Команда бэкапа базы данных	            lsblk
+
 
 API Эндпоинты:
 

@@ -14,6 +14,9 @@ const backupAPP = document.getElementById('backupAPP');
 const restoreAPP = document.getElementById('restoreAPP');
 const backupBD = document.getElementById('backupBD');
 
+// Задать переменную префикса пути к API
+const upt_url_api_prefix = "";
+
 let selectedFiles = [];
 
 // Функция для экранирования HTML
@@ -35,7 +38,7 @@ async function deleteFile(filename) {
 	}
 
 	try {
-		const response = await fetch('/api/delete', {
+		const response = await fetch(`${upt_url_api_prefix}/api/delete`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
@@ -60,7 +63,7 @@ async function deleteFile(filename) {
 // Функция получения списка файлов
 async function listFiles() {
 	try {
-		const response = await fetch('/api/list');
+		const response = await fetch(`${upt_url_api_prefix}/api/list`);
 		const data = await response.json();
 
 		if (data.error) {
@@ -163,10 +166,10 @@ clearBtn.addEventListener('click', () => {
 	messageBox.innerHTML = '';
 });
 listBtn.addEventListener('click', listFiles);
-updateAPP.addEventListener('click', () => executeCommand('/api/update', 'Update'));
-backupAPP.addEventListener('click', () => executeCommand('/api/backupAPP', 'Backup APP'));
-restoreAPP.addEventListener('click', () => executeCommand('/api/restoreAPP', 'Restore APP'));
-backupBD.addEventListener('click', () => executeCommand('/api/backupBD', 'Backup BD'));
+updateAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/update`, 'Update'));
+backupAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupAPP`, 'Backup APP'));
+restoreAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/restoreAPP`, 'Restore APP'));
+backupBD.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupBD`, 'Backup BD'));
 
 async function uploadFiles() {
 	if (selectedFiles.length === 0) {
@@ -181,7 +184,7 @@ async function uploadFiles() {
 
 	try {
 		uploadBtn.disabled = true;
-		const response = await fetch('/api/upload', {
+		const response = await fetch(`${upt_url_api_prefix}/api/upload`, {
 			method: 'POST',
 			body: formData
 		});
