@@ -22,6 +22,7 @@ type Config struct {
 	RestoreAPP string
 	BackupBD   string
 	LimitMB    int64
+	ApiPrefix  string
 }
 
 // Response структура ответа
@@ -47,23 +48,30 @@ func init() {
 	// Проверяем корректность ввода значения limitMB
 	limitMB, err := strconv.ParseInt(getEnv("UPT_LIMIT_DOWNLOAD_MB", "500"), 10, 64)
 	if err != nil {
-		log.Fatalf("Не корректный формат UPT_LIMIT_DOWNLOAD_MB: %v", err)
+		log.Fatalf("❌ Не корректный формат UPT_LIMIT_DOWNLOAD_MB: %v", err)
 		return
 	}
 
 	cfg = Config{
 		LimitMB:    limitMB,
 		Port:       getEnv("UPT_PORT", ":8080"),
-		UploadDir:  getEnv("UPT_URL_PREFIX", "./uploads"),
+		UploadDir:  getEnv("UPT_PATH_PREFIX", "./uploads"),
 		Update:     getEnv("UPT_SC_UPDATE", "lscpu"),
+		ApiPrefix:  getEnv("UPT_URL_API_PREFIX", ""),
 		BackupAPP:  getEnv("UPT_SC_BACKUP_APP", "who"),
 		RestoreAPP: getEnv("UPT_SC_RESTORE_APP", "vmstat"),
 		BackupBD:   getEnv("UPT_SC_BACKUP_BD", "lsblk"),
 	}
 
 	if err := os.MkdirAll(cfg.UploadDir, 0750); err != nil {
-		log.Fatalf("Ошибка создания директории: %v", err)
+		log.Fatalf("❌ Ошибка создания директории: %v", err)
 	}
+}
+
+// registerRoute регистрирует обработчик и сразу выводит итоговый путь в лог
+func registerRoute(pattern string, handler http.HandlerFunc) {
+	http.HandleFunc(pattern, handler)
+	log.Printf("🔖 EdnPoint зарегистрирован: %s", pattern)
 }
 
 func main() {
@@ -73,20 +81,21 @@ func main() {
 
 	// API endpoints
 	http.HandleFunc("/", serveIndex)
-	http.HandleFunc("/api/upload", uploadHandler)
-	http.HandleFunc("/api/list", listHandler)
-	http.HandleFunc("/api/update", updateHandler)
-	http.HandleFunc("/api/backupAPP", backupAPPHandler)
-	http.HandleFunc("/api/restoreAPP", restoreAPPHandler)
-	http.HandleFunc("/api/backupBD", backupBDHandler)
-	http.HandleFunc("/api/delete", deleteHandler)
+
+	registerRoute(cfg.ApiPrefix+"/api/upload", uploadHandler)
+	registerRoute(cfg.ApiPrefix+"/api/list", listHandler)
+	registerRoute(cfg.ApiPrefix+"/api/update", updateHandler)
+	registerRoute(cfg.ApiPrefix+"/api/backupAPP", backupAPPHandler)
+	registerRoute(cfg.ApiPrefix+"/api/restoreAPP", restoreAPPHandler)
+	registerRoute(cfg.ApiPrefix+"/api/backupBD", backupBDHandler)
+	registerRoute(cfg.ApiPrefix+"/api/delete", deleteHandler)
 
 	log.Printf("🚀 Сервер запущен на http://localhost:%s", cfg.Port)
 	log.Printf("📁 Директория загрузок: %s", cfg.UploadDir)
 
 	// Запуск HTTP сервера
 	if err := http.ListenAndServe(cfg.Port, nil); err != nil {
-		log.Fatalf("Ошибка запуска сервера: %v", err)
+		log.Fatalf("❌ Ошибка запуска сервера: %v", err)
 	}
 }
 
@@ -99,7 +108,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 
 	file, err := os.Open("index.html")
 	if err != nil {
-		http.Error(w, "Файл не найден", http.StatusNotFound)
+		http.Error(w, "❌ Файл не найден", http.StatusNotFound)
 		return
 	}
 	defer file.Close()
@@ -112,7 +121,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Response{Error: "Метод не поддерживается"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Метод не поддерживается"})
 		return
 	}
 
@@ -123,7 +132,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if len(files) == 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(Response{Error: "Файлы не найдены"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Файлы не найдены"})
 		return
 	}
 
@@ -138,7 +147,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		file, err := fileHeader.Open()
 		if err != nil {
-			log.Printf("Ошибка открытия файла: %v", err)
+			log.Printf("❌ Ошибка открытия файла: %v", err)
 			continue
 		}
 		defer file.Close()
@@ -146,13 +155,13 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		// Сохраняем файл
 		dst, err := os.Create(filepath.Join(cfg.UploadDir, filename))
 		if err != nil {
-			log.Printf("Ошибка создания файла: %v", err)
+			log.Printf("❌ Ошибка создания файла: %v", err)
 			continue
 		}
 		defer dst.Close()
 
 		if _, err := io.Copy(dst, file); err != nil {
-			log.Printf("Ошибка копирования файла: %v", err)
+			log.Printf("❌ Ошибка копирования файла: %v", err)
 			continue
 		}
 
@@ -167,7 +176,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Response{Error: "Метод не поддерживается"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Метод не поддерживается"})
 		return
 	}
 
@@ -175,7 +184,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	if filename == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(Response{Error: "Имя файла не указано"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Имя файла не указано"})
 		return
 	}
 
@@ -185,15 +194,15 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(Response{Error: "Файл не найден"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Файл не найден"})
 		return
 	}
 
 	if err := os.Remove(filePath); err != nil {
-		log.Printf("Ошибка удаления файла %s: %v", filename, err)
+		log.Printf("❌ Ошибка удаления файла %s: %v", filename, err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(Response{Error: fmt.Sprintf("Ошибка удаления файла: %v", err)})
+		json.NewEncoder(w).Encode(Response{Error: fmt.Sprintf("❌ Ошибка удаления файла: %v", err)})
 		return
 	}
 
@@ -206,7 +215,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 func listHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Response{Error: "Метод не поддерживается"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Метод не поддерживается"})
 		return
 	}
 
@@ -216,7 +225,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("Ошибка выполнения команды: %v", err)
+		log.Printf("❌ Ошибка выполнения команды: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Response{
@@ -226,7 +235,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("✓ Команда выполнена успешно")
+	log.Printf("✓ Команда выполнена успешно: %s %s", r.Method, r.URL.Path)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Output: string(output)})
 }
@@ -235,7 +244,7 @@ func listHandler(w http.ResponseWriter, r *http.Request) {
 func updateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Response{Error: "Метод не поддерживается"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Метод не поддерживается"})
 		return
 	}
 
@@ -244,7 +253,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("Ошибка выполнения команды: %v", err)
+		log.Printf("❌ Ошибка выполнения команды: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Response{
@@ -254,7 +263,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("✓ Команда lscpu выполнена успешно")
+	log.Printf("✓ Команда выполнена успешно: %s %s", r.Method, r.URL.Path)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Output: string(output)})
 }
@@ -263,7 +272,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 func backupAPPHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Response{Error: "Метод не поддерживается"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Метод не поддерживается"})
 		return
 	}
 
@@ -272,7 +281,7 @@ func backupAPPHandler(w http.ResponseWriter, r *http.Request) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("Ошибка выполнения команды: %v", err)
+		log.Printf("❌ Ошибка выполнения команды: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Response{
@@ -282,7 +291,7 @@ func backupAPPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("✓ Команда lscpu выполнена успешно")
+	log.Printf("✓ Команда выполнена успешно: %s %s", r.Method, r.URL.Path)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Output: string(output)})
 }
@@ -291,7 +300,7 @@ func backupAPPHandler(w http.ResponseWriter, r *http.Request) {
 func restoreAPPHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Response{Error: "Метод не поддерживается"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Метод не поддерживается"})
 		return
 	}
 
@@ -300,7 +309,7 @@ func restoreAPPHandler(w http.ResponseWriter, r *http.Request) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("Ошибка выполнения команды: %v", err)
+		log.Printf("❌ Ошибка выполнения команды: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Response{
@@ -310,7 +319,7 @@ func restoreAPPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("✓ Команда lscpu выполнена успешно")
+	log.Printf("✓ Команда выполнена успешно: %s %s", r.Method, r.URL.Path)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Output: string(output)})
 }
@@ -319,7 +328,7 @@ func restoreAPPHandler(w http.ResponseWriter, r *http.Request) {
 func backupBDHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(Response{Error: "Метод не поддерживается"})
+		json.NewEncoder(w).Encode(Response{Error: "❌ Метод не поддерживается"})
 		return
 	}
 
@@ -328,7 +337,7 @@ func backupBDHandler(w http.ResponseWriter, r *http.Request) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Printf("Ошибка выполнения команды: %v", err)
+		log.Printf("❌ Ошибка выполнения команды: %v", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(Response{
@@ -338,7 +347,7 @@ func backupBDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("✓ Команда lscpu выполнена успешно")
+	log.Printf("✓ Команда выполнена успешно: %s %s", r.Method, r.URL.Path)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(Response{Output: string(output)})
 }
