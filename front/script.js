@@ -208,7 +208,12 @@ uploadBtn.addEventListener('click', uploadFiles);
 clearBtn.addEventListener('click', () => { selectedFiles = []; renderFileList(); messageBox.innerHTML = ''; });
 listBtn.addEventListener('click', listFiles);
 
-async function executeCommand(endpoint, name) {
+async function executeCommand(endpoint, name, button) {
+    // Блокируем кнопку
+    button.disabled = true;
+    const originalText = button.innerText;
+    button.innerText = 'Выполняется...';
+    
     try {
         const response = await fetch(endpoint);
         const data = await response.json();
@@ -217,10 +222,17 @@ async function executeCommand(endpoint, name) {
         outputBox.style.display = 'block';
     } catch (e) {
         commandMessage.textContent = 'Ошибка';
+        commandOutput.textContent = e.message;
+        outputBox.style.display = 'block';
+    } finally {
+        // Разблокируем кнопку после получения ответа
+        button.disabled = false;
+        button.innerText = originalText;
     }
 }
 
-updateAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/update`, 'Обновление'));
-backupAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupAPP`, 'Бэкап APP'));
-restoreAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/restoreAPP`, 'Восстановление'));
-backupBD.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupBD`, 'Бэкап БД'));
+// Обновляем обработчики событий для всех кнопок
+updateAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/update`, 'Обновление', updateAPP));
+backupAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupAPP`, 'Бэкап APP', backupAPP));
+restoreAPP.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/restoreAPP`, 'Восстановление', restoreAPP));
+backupBD.addEventListener('click', () => executeCommand(`${upt_url_api_prefix}/api/backupBD`, 'Бэкап БД', backupBD));
